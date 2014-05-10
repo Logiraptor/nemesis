@@ -14,8 +14,8 @@ func init() {
 		"id": func(x string) string {
 			return strings.Replace(x, " ", "", -1)
 		},
-		"json": func(x interface{}) template.HTML {
-			buf, err := json.MarshalIndent(x, "    ", "\t")
+		"json": func(x ...interface{}) template.HTML {
+			buf, err := json.MarshalIndent(x[0], "    ", "\t")
 			if err != nil {
 				return template.HTML(err.Error())
 			}
@@ -35,11 +35,16 @@ var base_html = `<!DOCTYPE html>
 <title>{{.Title}}</title>
 
 <xmp theme="{{.Theme}}" style="display:none;">
+
+# Contents
+<hr />
 Name | Method | URL
 -----|--------|----
 {{range .APIs}}<a href="#{{.Name | id}}">{{.Name}}</a> | {{.Method}} | {{.URL}}
 {{end}}
 
+# Details
+<hr />
 {{range .APIs}}
 
 <a id="{{.Name | id}}"> </a>
@@ -50,10 +55,12 @@ Name | Method | URL
 
     {{.Method}} {{.URL}}
 
+{{if .Sample}}
 Sample:
 
     {{.Sample | json}}
 
+{{end}}
 {{end}}
 
 </xmp>
