@@ -89,6 +89,9 @@ func NewAPIDocList(name, root, theme string) *APIDocList {
 }
 
 func (a *APIDocList) AddMethods(doc ...APIDoc) {
+	for i := range doc {
+		doc[i].URL = a.Root + doc[i].URL
+	}
 	a.APIs = append(a.APIs, doc...)
 }
 

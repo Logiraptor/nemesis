@@ -12,6 +12,7 @@ import (
 )
 
 type DB interface {
+	Context() appengine.Context
 	Count(q *datastore.Query) (int, error)
 	Delete(key *datastore.Key) error
 	DeleteMulti(keys []*datastore.Key) error
@@ -43,6 +44,10 @@ func DBFromContext(ctx appengine.Context) DB {
 type goonWrapper struct {
 	*goon.Goon
 	ctx appengine.Context
+}
+
+func (g *goonWrapper) Context() appengine.Context {
+	return g.ctx
 }
 
 func (g *goonWrapper) Run(q *datastore.Query) Iterator {

@@ -59,8 +59,11 @@ func EncodeResponse(f interface{}) interface{} {
 
 		rw.Header().Add("Content-Type", "application/json")
 		rw.WriteHeader(int(result[0].Int()))
-
-		err = enc.Encode(result[1].Interface())
+		v := result[1].Interface()
+		if v == nil {
+			return
+		}
+		err = enc.Encode(v)
 		if err != nil {
 			enc.Encode(err)
 			return
@@ -105,7 +108,9 @@ func EncodeResponseError(f interface{}) interface{} {
 			enc.Encode(err)
 			return
 		}
-
+		if v == nil {
+			return
+		}
 		rw.WriteHeader(200)
 		err = enc.Encode(v)
 		if err != nil {
