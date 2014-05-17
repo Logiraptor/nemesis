@@ -41,8 +41,8 @@ func InjectUser(dst User) interface{} {
 
 }
 
-func InjectPush(gcm_key string) interface{} {
+func InjectPush(gcm_key, ios_cert string) interface{} {
 	return func(c martini.Context, db DB) {
-		c.Map(NewPush(db, gcm_key))
+		c.Map(NewPush(db, gcm_key, ios_cert))
 	}
 }

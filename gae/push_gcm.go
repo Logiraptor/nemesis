@@ -2,9 +2,11 @@ package gae
 
 import (
 	"fmt"
+	"time"
 
 	"appengine/urlfetch"
 
+	"github.com/Logiraptor/Go-Apns"
 	"github.com/alexjlockwood/gcm"
 
 	"appengine/datastore"
@@ -22,14 +24,16 @@ type Device struct {
 }
 
 type Push struct {
-	gcm_key string
-	db      DB
+	gcm_key   string
+	cert_path string
+	db        DB
 }
 
-func NewPush(db DB, gcm_key string) *Push {
+func NewPush(db DB, gcm_key, ios_cert string) *Push {
 	return &Push{
-		gcm_key: gcm_key,
-		db:      db,
+		gcm_key:   gcm_key,
+		cert_path: ios_cert,
+		db:        db,
 	}
 }
 
@@ -38,6 +42,15 @@ func (p *Push) RegisterAndroid(token string, parent *datastore.Key) error {
 		Token:  token,
 		Parent: parent,
 		Type:   androidDevice,
+	})
+	return err
+}
+
+func (p *Push) RegisterIOS(token string, parent *datastore.Key) error {
+	_, err := p.db.Put(&Device{
+		Token:  token,
+		Parent: parent,
+		Type:   iosDevice,
 	})
 	return err
 }
@@ -73,7 +86,10 @@ func (p *Push) SendAll(data map[string]interface{}) error {
 	}
 
 	if len(iosTokens) > 0 {
-		// ......
+		_, err := apns.New("apns_dev_cert.pem", "apns_dev_key.pem", "gateway.sandbox.push.apple.com:2195", 1*time.Second)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
