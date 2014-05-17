@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Version specified the 'version' of a resource.
+// Version specifies the 'version' of a resource.
 type Version string
 
 func GetVersion(data []byte) Version {
