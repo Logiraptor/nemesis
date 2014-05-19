@@ -1,13 +1,11 @@
 package gae
 
 import (
-	"fmt"
 	"time"
 
-	"appengine/urlfetch"
-
-	"github.com/Logiraptor/Go-Apns"
 	"github.com/alexjlockwood/gcm"
+
+	"appengine/urlfetch"
 
 	"appengine/datastore"
 )
@@ -55,7 +53,7 @@ func (p *Push) RegisterIOS(token string, parent *datastore.Key) error {
 	return err
 }
 
-func (p *Push) SendAll(data map[string]interface{}) error {
+func (p *Push) SendAll(message string, data map[string]interface{}) error {
 	q := datastore.NewQuery(p.db.Kind(&Device{}))
 
 	var devs []Device
@@ -64,6 +62,21 @@ func (p *Push) SendAll(data map[string]interface{}) error {
 		return err
 	}
 
+	return p.BatchSend(message, data, devs)
+}
+
+func (p *Push) SendMessage(message string, data map[string]interface{}, parent *datastore.Key) error {
+	q := datastore.NewQuery(p.db.Kind(Device{})).Ancestor(parent)
+	var tokens []Device
+	_, err := p.db.GetAll(q, &tokens)
+	if err != nil {
+		return err
+	}
+	p.db.Context().Errorf("Found %d devices: %v", len(tokens), tokens)
+	return p.BatchSend(message, data, tokens)
+}
+
+func (p *Push) BatchSend(message string, data map[string]interface{}, devs []Device) error {
 	var androidTokens []string
 	var iosTokens []string
 	for _, d := range devs {
@@ -76,48 +89,41 @@ func (p *Push) SendAll(data map[string]interface{}) error {
 	}
 
 	if len(androidTokens) > 0 {
+		if data == nil {
+			data = make(map[string]interface{})
+		}
+		data["Message"] = message
 		client := urlfetch.Client(p.db.Context())
 		msg := gcm.NewMessage(data, androidTokens...)
 		sender := &gcm.Sender{ApiKey: p.gcm_key, Http: client}
-		_, err = sender.Send(msg, 2)
+		_, err := sender.Send(msg, 3)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(iosTokens) > 0 {
-		_, err := apns.New("apns_dev_cert.pem", "apns_dev_key.pem", "gateway.sandbox.push.apple.com:2195", 1*time.Second)
-		if err != nil {
-			return err
+		client := NewAPNSClient(p.db.Context(), p.cert_path)
+		for _, token := range iosTokens {
+			notif := Notification{
+				Device: token,
+				Payload: Payload{
+					APS: APS{
+						Alert: message,
+						Badge: -1,
+					},
+				},
+				Expiration: time.Now().Add(time.Hour),
+				Lazy:       false,
+			}
+			var err = client.SendAPNS(notif)
+			for i := 0; i < 3 && err != nil; i++ {
+				err = client.SendAPNS(notif)
+			}
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return nil
-}
-
-func (p *Push) SendMessage(data map[string]interface{}, device *datastore.Key) error {
-	d := &Device{
-		Token:  device.StringID(),
-		Parent: device.Parent(),
-	}
-	err := p.db.Get(d)
-	if err != nil {
-		return fmt.Errorf("invalid device key: %s", device)
-	}
-
-	switch d.Type {
-	case androidDevice:
-		client := urlfetch.Client(p.db.Context())
-		msg := gcm.NewMessage(data, d.Token)
-		sender := &gcm.Sender{ApiKey: p.gcm_key, Http: client}
-		_, err = sender.Send(msg, 2)
-		if err != nil {
-			return err
-		}
-	case iosDevice:
-		// TODO: enqueue a task to a crazy backend thing that
-		// nobody understands
-		return fmt.Errorf("unimplemented")
-	}
-
 	return nil
 }
