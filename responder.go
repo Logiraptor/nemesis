@@ -11,6 +11,8 @@ import (
 	"io"
 )
 
+var Success = struct{ Status string }{"Success"}
+
 type JSONEncoder struct {
 	wr io.Writer
 }
@@ -71,7 +73,7 @@ func EncodeResponse(f interface{}) interface{} {
 	}
 }
 
-// EncodeResponse takes a function of the form
+// EncodeResponseError takes a function of the form
 // func(...) (interface{}, error) and encodes the return value
 // to the ResponseWriter as JSON. If error != nil, 500 is returned,
 // otherwise 200.
@@ -92,7 +94,7 @@ func EncodeResponseError(f interface{}) interface{} {
 	}
 
 	return func(c martini.Context, rw http.ResponseWriter) {
-		rw.Header().Add("Content-Type", "application/json")
+		rw.Header().Set("Content-Type", "application/json")
 		enc := JSONEncoder{rw}
 		result, err := c.Invoke(f)
 		if err != nil {
