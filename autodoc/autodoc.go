@@ -1,4 +1,4 @@
-package nemesis
+package autodoc
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ func init() {
 	var err error
 	docTempl, err = template.New("doc").Funcs(template.FuncMap{
 		"id": func(x string) string {
-			return strings.Replace(x, " ", "", -1)
+			return strings.Replace(x, " ", "_", -1)
 		},
 		"json": func(x ...interface{}) template.HTML {
 			buf, err := json.MarshalIndent(x[0], "    ", "\t")
@@ -29,49 +29,11 @@ func init() {
 
 var docTempl *template.Template
 
-var base_html = `<!DOCTYPE html>
-<html>
-<a id="top"></a>
-<title>{{.Title}}</title>
-
-<xmp theme="{{.Theme}}" style="display:none;">
-
-# Contents
-<hr />
-Name | Method | URL
------|--------|----
-{{range .APIs}}<a href="#{{.Name | id}}">{{.Name}}</a> | {{.Method}} | {{.URL}}
-{{end}}
-
-# Details
-<hr />
-{{range .APIs}}
-
-<a id="{{.Name | id}}"> </a>
-## {{.Name}}
-<a href="#">top</a>
-
-{{.Description}}
-
-    {{.Method}} {{.URL}}
-
-{{if .Sample}}
-Sample:
-
-    {{.Sample | json}}
-
-{{end}}
-{{end}}
-
-</xmp>
-
-<script src="http://strapdownjs.com/v/0.2/strapdown.js"></script>
-</html>`
-
 type APIDoc struct {
 	URL, Method       string
 	Name, Description string
-	Sample            interface{}
+	Request           Describer
+	Response          Describer
 }
 
 type APIDocList struct {
