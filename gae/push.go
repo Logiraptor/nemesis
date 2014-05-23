@@ -104,20 +104,21 @@ func (p *Push) BatchSend(message string, data map[string]interface{}, devs []Dev
 
 	if len(iosTokens) > 0 {
 		client := NewAPNSClient(p.db.Context(), p.cert_path)
+		data["aps"] = APS{
+			Alert: message,
+			Badge: -1,
+		}
 		for _, token := range iosTokens {
 			notif := Notification{
-				Device: token,
-				Payload: Payload{
-					APS: APS{
-						Alert: message,
-						Badge: -1,
-					},
-				},
+				Device:     token,
+				Payload:    data,
 				Expiration: time.Now().Add(time.Hour),
 				Lazy:       false,
 			}
+			p.db.Context().Infof("Sending push: % #v", notif)
 			var err = client.SendAPNS(notif)
 			for i := 0; i < 3 && err != nil; i++ {
+				p.db.Context().Infof("Retrying push: %s", err.Error())
 				err = client.SendAPNS(notif)
 			}
 			if err != nil {

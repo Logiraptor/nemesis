@@ -23,10 +23,8 @@ import (
 )
 
 var (
-	apnsAddr = "76.72.22.33"
-	// apnsAddr     = "gateway.sandbox.push.apple.com"
-	port = ":8081"
-	// port         = ":2195"
+	apnsAddr     = "gateway.sandbox.push.apple.com"
+	port         = ":2195"
 	apnsInitSync sync.Once
 	notifChannel chan Notification
 )
@@ -43,7 +41,7 @@ type Payload struct {
 
 type Notification struct {
 	Device     string
-	Payload    Payload
+	Payload    map[string]interface{}
 	Identifier int32
 	Expiration time.Time
 	Lazy       bool
@@ -91,7 +89,7 @@ func (n *Notification) WriteTo(wr io.Writer) (int64, error) {
 	frame.WriteByte(5)
 	binary.Write(frame, binary.BigEndian, int16(1))
 	if n.Lazy {
-		binary.Write(frame, binary.BigEndian, byte(5)) // 5 means send now
+		binary.Write(frame, binary.BigEndian, byte(5)) // 5 means send later
 	} else {
 		binary.Write(frame, binary.BigEndian, byte(10)) // 10 means send now
 	}

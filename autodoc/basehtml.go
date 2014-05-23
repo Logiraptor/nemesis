@@ -24,21 +24,18 @@ Name | Method | URL
 
 {{.Description}}
 
-    {{.Method}} {{.URL}}
+**Request**:
 
+    {{.Method}} {{.URL}}{{if .Request}}
+    {{.Request.Describe}}{{end}}
 
-{{if .Request}}
-Request:
-
-    {{.Request.Describe}}
-
-{{end}}
 {{if .Response}}
-Response:
+**Response**:
 
     {{.Response.Describe}}
 
 {{end}}
+<hr />
 {{end}}
 
 </xmp>
